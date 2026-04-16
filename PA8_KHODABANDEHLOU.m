@@ -3,218 +3,203 @@
 % Apr 8th 2026
 % PA8_KHODABANDEHLOU.m
 %
-% Records video of bouncing ball and calculates the energy and coefficient
-% of restitution
+% Records video of a bouncing ball and calculates motion, bounce heights,
+% coefficient of restitution, and energy.
 
 clear
 close all
-clc 
+clc
 
 %% Declarations
-% You will probably add many more variables to this section. Remember:
-% avoid numbers in later sections of your code, so include parameters
-% like threshold limits, crop values, etc., in this section.
-
-% Constant
-G = -9.81; % gravity (m/s^2)
+% Constants
+G = -9.81;               % gravity (m/s^2)
 
 % Ball properties
-ballMass = 0.1;    % ball mass (kg)
-ballDm = 69.51e-3; % ball diameter (m)
-ballDPx = [];      % ball diameter (px), computed from video
-px2m = [];         % pixel-to-meter conversion factor, computed from video
+ballMass = 0.10;         % ball mass (kg)
+ballDm = 69.51e-3;       % known ball diameter (m)
 
-% Load video
+% Video setup
 vidFile = 'ball.mov';
-vid = VideoReader(vidFile); % reads in .avi file
-frameRate = 240;  % frame rate (fps), pulled from video
+vid = VideoReader(vidFile);
+frameRate = 240;         % use known/assigned frame rate (fps)
 
-% Video information
-frameStart = 1; % CHANGE THIS
-frameStop = getfield(vid, 'NumFrames'); % CHANGE THIS
-frameIdx = (frameStart:frameStop).';
-timeVec = (frameIdx - frameStart) / frameRate; 
+% Frame range (trim unusable beginning/end)
+frameStart = 1;                          % change if needed
+frameStop = vid.NumFrames;               % change if needed
+frameList = frameStart:frameStop;
+numFrames = numel(frameList);
 
-% Color codes
+% Color threshold (RGB)
 Cmin = [129, 29, 7];
 Cmax = [308, 223, 220];
 
-% Crop points
+% Crop rectangle [xLeft xRight], [yTop yBottom]
 xCrop = 393;
+xCropBot = 1026;
 yCrop = 167;
 yCropBot = 1300;
-xCropBot = 1026;
+cropW = xCropBot - xCrop + 1;
+cropH = yCropBot - yCrop + 1;
 
-% Step through each frame 
-cropW = xCropBot - xCrop;
-cropH = yCropBot - yCrop;
+% Bounce detection settings
+minPeakDistSec = 0.10;   % minimum time between bounce peaks (s)
+peakPromFrac = 0.03;     % prominence as fraction of max height
+minHeightFrac = 0.08;    % minimum normalized height for "quality" bounces
 
-%%
-allFrames = read(vid, [1 frameStop]);   % rows x cols x 3 x numFrames
+%% Section 1: Process each frame (crop, threshold, centroid)
+centRow = nan(numFrames,1);
+centCol = nan(numFrames,1);
+ballAreaPx = nan(numFrames,1);
 
-croped = allFrames(yCrop:yCropBot, xCrop:xCropBot, :, :);
+figure('Name','Motion Tracking','Color','w')
+for n = 1:numFrames
+    k = frameList(n);
 
-BW = ((croped(:,:,1,:) > Cmin(1)) & (croped(:,:,1,:) < Cmax(1))) & ...
-     ((croped(:,:,2,:) > Cmin(2)) & (croped(:,:,2,:) < Cmax(2))) & ...
-     ((croped(:,:,3,:) > Cmin(3)) & (croped(:,:,3,:) < Cmax(3)));
+    % Read one frame and crop to area where the ball always appears
+    frameRGB = read(vid, k);
+    frameCrop = frameRGB(yCrop:yCropBot, xCrop:xCropBot, :);
 
-BW = reshape(BW, size(BW,1), size(BW,2), frameStop);
+    % Binary threshold for the ball color
+    BW = frameCrop(:,:,1) >= Cmin(1) & frameCrop(:,:,1) <= Cmax(1) & ...
+         frameCrop(:,:,2) >= Cmin(2) & frameCrop(:,:,2) <= Cmax(2) & ...
+         frameCrop(:,:,3) >= Cmin(3) & frameCrop(:,:,3) <= Cmax(3);
 
-nRows = size(BW,1);
-nCols = size(BW,2);
+    % Centroid of thresholded blob
+    [r, c] = Centroid(BW);
+    if r > 0 && c > 0
+        centRow(n) = r;
+        centCol(n) = c;
+        ballAreaPx(n) = sum(BW(:));
+    end
 
-rowIdx = reshape(1:nRows, [nRows 1 1]);
-colIdx = reshape(1:nCols, [1 nCols 1]);
-
-mass = reshape(sum(sum(BW,1),2), [frameStop 1]);
-
-cRow = reshape(sum(sum(double(BW).*rowIdx,1),2), [frameStop 1]) ./ mass;
-cCol = reshape(sum(sum(double(BW).*colIdx,1),2), [frameStop 1]) ./ mass;
-
-xPos = cCol;
-yPos = cropH - cRow;
-
-%% Compute one global ball scale from the whole video
-
-validFrames = mass > 0;
-
-% Equivalent diameter in pixels for each valid frame
-ballDPxVec = sqrt(4 * mass(validFrames) / pi);
-
-% One diameter for the entire video
-ballDPx = median(ballDPxVec);
-
-% One pixel-to-meter scale for the entire video
-px2m = ballDm / ballDPx;
-
-%% Threshold Video
-for k = 1:frameStop
+    % Plot 1: cropped binary image
     subplot(1,2,1)
-    imshow(BW(:,:,k))
-    aspectRatio = pbaspect;
+    imshow(BW)
+    title('Cropped Binary Image')
 
+    % Plot 2: centroid history + current location
     subplot(1,2,2)
-    plot(xPos(1:k), yPos(1:k), 'b-')
+    xHist = centCol(1:n);
+    yHist = cropH - centRow(1:n) + 1; % upward-positive plotting
+    valid = ~isnan(xHist) & ~isnan(yHist);
+
+    plot(xHist(valid), yHist(valid), 'b-', 'LineWidth', 1.4)
     hold on
-    plot(xPos(k), yPos(k), 'rx')
+    if any(valid)
+        lastIdx = find(valid, 1, 'last');
+        plot(xHist(lastIdx), yHist(lastIdx), 'rx', 'LineWidth', 1.8, 'MarkerSize', 9)
+    end
     hold off
-    pbaspect(aspectRatio)
-    axis([0, cropW, 0, cropH])
+    grid on
+    axis([1 cropW 0 cropH])
+    pbaspect([cropW cropH 1])
+    set(gca, 'YDir', 'normal')
+    title('Centroid Trajectory')
+    xlabel('x (pixels)')
+    ylabel('y (pixels, upward)')
+
     drawnow
 end
 
-%% Plot y position, velocity, and acceleration
+%% Pixel-to-meter conversion from measured diameter
+validArea = ~isnan(ballAreaPx) & ballAreaPx > 0;
+ballDPxVec = sqrt(4*ballAreaPx(validArea)/pi);   % equivalent diameter from area
+ballDPx = median(ballDPxVec);                    % one scale for whole video
+px2m = ballDm / ballDPx;
 
-% Vertical position in meters, positive upward
-yPos = (cropH - cRow(frameStart:frameStop)) * px2m;
-yPos = yPos - min(yPos);
+%% Section 2: Kinematics (position, velocity, acceleration)
+% Fill missing centroid values from occasional threshold dropouts
+centRowFilled = fillmissing(centRow, 'linear', 'EndValues', 'nearest');
 
-% Time vector in seconds
-t = (0:length(yPos)-1)/frameRate;
+% y position in meters: positive and ends at zero (ground)
+yPosPx = cropH - centRowFilled + 1;
+yPosM = yPosPx * px2m;
+yCorr = yPosM - min(yPosM);
+ySmooth = smooth(yCorr, 5);
 
-% Smooth position slightly before differentiating
-yPosSmooth = smoothdata(yPos,5);
+% Time vector for analyzed frames
+t = (0:numFrames-1)' / frameRate;
 
+% Numerical derivatives
+yVel = gradient(ySmooth, t);
+yAcc = gradient(yVel, t);
 
-
-% Vertical velocity and acceleration
-vy = gradient(yPosSmooth, t);
-ay = gradient(vy, t);
-
-figure
-
+figure('Name','Kinematics','Color','w')
 subplot(3,1,1)
-plot(t, yPos, 'b-', t, yPosSmooth, 'r-', 'LineWidth', 1.2)
-xlabel('Time (s)')
-ylabel('y Position (m)')
-legend('Raw y','Smoothed y')
-title('Vertical Position vs Time')
+plot(t, yCorr, 'Color', [0.75 0.75 0.75], 'LineWidth', 1)
+hold on
+plot(t, ySmooth, 'b-', 'LineWidth', 1.5)
+hold off
 grid on
+xlabel('Time (s)')
+ylabel('y (m)')
+title('Vertical Position')
+legend('Corrected y', 'Smoothed y', 'Location', 'best')
 
 subplot(3,1,2)
-plot(t, vy, 'b-', 'LineWidth', 1.2)
+plot(t, yVel, 'r-', 'LineWidth', 1.3)
+grid on
 xlabel('Time (s)')
 ylabel('v_y (m/s)')
-title('Vertical Velocity vs Time')
-grid on
+title('Vertical Velocity')
 
 subplot(3,1,3)
-plot(t, ay, 'b-', 'LineWidth', 1.2)
+plot(t, yAcc, 'm-', 'LineWidth', 1.3)
+hold on
+yline(G, 'k--', 'g')
+hold off
+grid on
 xlabel('Time (s)')
 ylabel('a_y (m/s^2)')
-title('Vertical Acceleration vs Time')
-legend('Measured a_y','g = -9.81 m/s^2')
-grid on
+title('Vertical Acceleration')
 
-%% Calculate coefficient of restitution and make stem plot
-%% Coefficient of restitution
+%% Section 3: Bounce heights and coefficient of restitution
+minPeakDistFrames = round(minPeakDistSec * frameRate);
+minProminence = peakPromFrac * max(ySmooth);
 
-% Bounce heights should be measured from y = 0 (ground level),
-% which is already true since you used:
-% yPos = yPos - min(yPos);
-
-% Find rebound peaks in the smoothed vertical position
-[minPeakDistFrames, ~] = deal(round(0.10 * frameRate), []);
-[pks, locs] = findpeaks(yPosSmooth, ...
+% Rebound maxima after each impact
+[reboundHeights, reboundLocs] = findpeaks(ySmooth, ...
     'MinPeakDistance', minPeakDistFrames, ...
-    'MinPeakProminence', 0.02 * max(yPosSmooth));
+    'MinPeakProminence', minProminence);
 
-% Include the initial drop height as the first height
-hVec = [yPosSmooth(1); pks(:)];
+% Include release height as bounce number 0
+hAll = [ySmooth(1); reboundHeights(:)];
+bounceNumAll = (0:numel(hAll)-1)';
 
-% Coefficient of restitution for each bounce:
-% e_n = sqrt(h_(n+1) / h_n)
-eVec = sqrt(hVec(2:end) ./ hVec(1:end-1));
-
-% Bounce number vector
-bounceNum = (1:length(eVec)).';
-
-% Display values
-disp('Bounce heights (m):')
-disp(hVec)
-
-disp('Coefficient of restitution for each bounce:')
-disp(eVec)
-
-disp('Mean coefficient of restitution:')
-disp(mean(eVec, 'omitnan'))
-
-% Stem plot of restitution coefficient
-figure
-stem(bounceNum, eVec, 'filled', 'LineWidth', 1.2)
-xlabel('Bounce Number')
-ylabel('Coefficient of Restitution, e')
-title('Coefficient of Restitution by Bounce')
+figure('Name','Bounce Heights','Color','w')
+st = stem(bounceNumAll, hAll, 'filled', 'LineWidth', 1.2);
+st.MarkerSize = 6;
 grid on
+xlabel('Bounce Number')
+ylabel('Height (m)')
+title('Initial and Rebound Heights')
 
+% e_n = sqrt(h_(n+1)/h_n)
+eEach = sqrt(hAll(2:end) ./ hAll(1:end-1));
 
+% Keep "quality" bounces only (ignore tiny/noisy late bounces)
+qualityMask = hAll(2:end) >= minHeightFrac * hAll(1);
+eQuality = eEach(qualityMask);
 
+eMean = mean(eQuality, 'omitnan');
 
-%% Plot energies as a function of time
+fprintf('Coefficient of restitution values (quality bounces):\n')
+disp(eQuality)
+fprintf('Average coefficient of restitution: %.4f\n', eMean)
 
-gMag = abs(G);   % use positive gravitational magnitude
+%% Section 4: Energy vs time
+PE = ballMass * abs(G) .* ySmooth;
+KE = 0.5 * ballMass .* (yVel.^2);
+TE = PE + KE;
 
-% Kinetic energy (vertical motion only)
-KE = 0.5 * ballMass * vy.^2;
-
-% Gravitational potential energy
-PE = ballMass * gMag * yPosSmooth;
-
-% Total mechanical energy
-TE = KE + PE;
-
-figure
-
-plot(t, KE, 'b-', 'LineWidth', 1.2)
+figure('Name','Energy','Color','w')
+plot(t, PE, 'g-', 'LineWidth', 1.3)
 hold on
-plot(t, PE, 'r-', 'LineWidth', 1.2)
-plot(t, TE, 'k-', 'LineWidth', 1.5)
+plot(t, KE, 'b-', 'LineWidth', 1.3)
+plot(t, TE, 'k-', 'LineWidth', 1.6)
 hold off
-
+grid on
 xlabel('Time (s)')
 ylabel('Energy (J)')
-title('Energy vs Time')
-legend('Kinetic Energy', 'Potential Energy', 'Total Energy')
-grid on
-
-
+title('Potential, Kinetic, and Total Energy')
+legend('Potential Energy', 'Kinetic Energy', 'Total Energy', 'Location', 'best')
