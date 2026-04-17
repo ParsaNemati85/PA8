@@ -84,7 +84,7 @@ for n = 1:numFrames
         firstCentCol = centCol(n);
         hasFirstCentCol = true;
     end
-    
+
     xHist = centCol(1:n) - firstCentCol; % x=0 at first detected centroid
     yHist = cropH - centRow(1:n) + 1; % upward-positive plotting
     valid = hasCentroid(1:n);
@@ -198,8 +198,6 @@ eQuality = eEach(qualityMask);
 
 eMean = mean(eQuality);
 
-fprintf('Coefficient of restitution values (quality bounces):\n')
-fprintf('%s\n', mat2str(eQuality))
 fprintf('Average coefficient of restitution: %.4f\n', eMean)
 
 %% Section 4: Energy vs time

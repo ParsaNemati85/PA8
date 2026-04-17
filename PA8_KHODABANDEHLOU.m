@@ -183,14 +183,8 @@ title('Initial and Rebound Heights')
 % e_n = sqrt(h_(n+1)/h_n)
 eEach = sqrt(hAll(2:end) ./ hAll(1:end-1));
 
-% Keep "quality" bounces only (ignore tiny/noisy late bounces)
-qualityMask = hAll(2:end) >= minHeightFrac * hAll(1);
-eQuality = eEach(qualityMask);
+eMean = mean(eEach(1:end-1));
 
-eMean = mean(eQuality);
-
-fprintf('Coefficient of restitution values (quality bounces):\n')
-fprintf('%s\n', mat2str(eQuality))
 fprintf('Average coefficient of restitution: %.4f\n', eMean)
 
 %% Section 4: Energy vs time
