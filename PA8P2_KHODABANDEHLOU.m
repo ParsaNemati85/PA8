@@ -19,7 +19,7 @@ ballMass = 0.051;        % ball mass (kg), 51 g
 ballDm = 100e-3;         % known ball diameter (m), 100 mm
 
 % Video setup
-vidFile = 'BouncingBall2.mov';
+vidFile = 'BB2A.mov';
 vid = VideoReader(vidFile);
 frameRate = 240;         % use known/assigned frame rate (fps)
 
