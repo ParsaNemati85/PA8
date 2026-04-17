@@ -48,6 +48,7 @@ centCol = zeros(numFrames,1);
 ballAreaPx = zeros(numFrames,1);
 hasCentroid = false(numFrames,1);
 firstCentCol = NaN;      % anchor x so initial detected position is x = 0
+trajXLim = [0, cropW - 1];  % updated once first centroid is detected
 
 figure('Name','Motion Tracking','Color','w')
 for n = 1:numFrames
@@ -83,9 +84,15 @@ for n = 1:numFrames
         firstCentCol = centCol(n);
     end
 
-    xHist = centCol(1:n) - firstCentCol;
+    xHist = centCol(1:n) - firstCentCol; % x=0 at first detected centroid
     yHist = cropH - centRow(1:n) + 1; % upward-positive plotting
     valid = hasCentroid(1:n);
+
+    % Keep trajectory axes in pixel units but aligned to x=0 at release:
+    % left limit is pixels available to the left edge, right limit to the right edge.
+    if ~isnan(firstCentCol)
+        trajXLim = [-(firstCentCol - 1), (cropW - firstCentCol)];
+    end
 
     plot(xHist(valid), yHist(valid), 'b-', 'LineWidth', 1.4)
     hold on
@@ -93,7 +100,8 @@ for n = 1:numFrames
     plot(xHist(lastIdx), yHist(lastIdx), 'rx', 'LineWidth', 1.8, 'MarkerSize', 9)
     hold off
     grid on
-    axis([0 cropW 0 cropH])
+    xlim(trajXLim)
+    ylim([0 cropH])
     pbaspect([cropW cropH 1])
     set(gca, 'YDir', 'normal')
     title('Centroid Trajectory')
