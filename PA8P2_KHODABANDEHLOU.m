@@ -33,20 +33,16 @@ numFrames = numel(frameList);
 Cmin = [129, 29, 7];
 Cmax = [308, 223, 220];
 
-% Crop rectangle [xLeft xRight], [yTop yBottom]
-xCrop = 393;
-xCropBot = 1026;
-yCrop = 167;
-yCropBot = 1300;
-cropW = xCropBot - xCrop + 1;
-cropH = yCropBot - yCrop + 1;
+% Use the full frame (no cropping)
+cropW = vid.Width;
+cropH = vid.Height;
 
 % Bounce detection settings
 minPeakDistSec = 0.10;   % minimum time between bounce peaks (s)
 peakPromFrac = 0.03;     % prominence as fraction of max height
 minHeightFrac = 0.08;    % minimum normalized height for "quality" bounces
 
-%% Section 1: Process each frame (crop, threshold, centroid)
+%% Section 1: Process each frame (full frame, threshold, centroid)
 centRow = zeros(numFrames,1);
 centCol = zeros(numFrames,1);
 ballAreaPx = zeros(numFrames,1);
@@ -56,9 +52,9 @@ figure('Name','Motion Tracking','Color','w')
 for n = 1:numFrames
     k = frameList(n);
 
-    % Read one frame and crop to area where the ball always appears
+    % Read one frame (no cropping)
     frameRGB = read(vid, k);
-    frameCrop = frameRGB(yCrop:yCropBot, xCrop:xCropBot, :);
+    frameCrop = frameRGB;
 
     % Binary threshold for the ball color
     BW = frameCrop(:,:,1) >= Cmin(1) & frameCrop(:,:,1) <= Cmax(1) & ...
@@ -74,10 +70,10 @@ for n = 1:numFrames
         hasCentroid(n) = true;
     end
 
-    % Plot 1: cropped binary image
+    % Plot 1: binary image
     subplot(1,2,1)
     imshow(BW)
-    title('Cropped Binary Image')
+    title('Binary Image')
 
     % Plot 2: centroid history + current location
     subplot(1,2,2)
