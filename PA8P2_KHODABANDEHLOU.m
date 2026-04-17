@@ -21,10 +21,10 @@ ballDm = 100e-3;         % known ball diameter (m), 100 mm
 % Video setup
 vidFile = 'BB2A.mov';
 vid = VideoReader(vidFile);
-frameRate = 240;         % use known/assigned frame rate (fps)
+frameRate = 120;         % use known/assigned frame rate (fps)
 
 % Frame range (trim unusable beginning/end)
-frameStart = 1;                % change if needed
+frameStart = 40;                % change if needed
 frameStop = 292;               % change if needed
 frameList = frameStart:frameStop;
 numFrames = numel(frameList);
@@ -34,8 +34,8 @@ Cmin = [120, 50, 50];
 Cmax = [255, 255, 255];
 
 % Use the full frame (no cropping)
-cropW = vid.Width;
-cropH = vid.Height;
+cropW = 260;
+cropH = 678;
 
 % Bounce detection settings
 minPeakDistSec = 0.10;   % minimum time between bounce peaks (s)
@@ -47,7 +47,7 @@ centRow = zeros(numFrames,1);
 centCol = zeros(numFrames,1);
 ballAreaPx = zeros(numFrames,1);
 hasCentroid = false(numFrames,1);
-firstCentCol = NaN;      % anchor x so initial detected position is x = 0
+firstCentCol = NaN;         % anchor x so initial detected position is x = 0
 trajXLim = [0, cropW - 1];  % updated once first centroid is detected
 
 figure('Name','Motion Tracking','Color','w')
@@ -63,7 +63,6 @@ for n = 1:numFrames
          frameCrop(:,:,2) >= Cmin(2) & frameCrop(:,:,2) <= Cmax(2) & ...
          frameCrop(:,:,3) >= Cmin(3) & frameCrop(:,:,3) <= Cmax(3));
     
-
     % Centroid of thresholded blob
     [r, c] = Centroid(BW);
     if r > 0 && c > 0
@@ -80,9 +79,7 @@ for n = 1:numFrames
 
     % Plot 2: centroid history + current location
     subplot(1,2,2)
-    if isnan(firstCentCol) && hasCentroid(n)
-        firstCentCol = centCol(n);
-    end
+    firstCentCol = centCol(n);
 
     xHist = centCol(1:n) - firstCentCol; % x=0 at first detected centroid
     yHist = cropH - centRow(1:n) + 1; % upward-positive plotting
@@ -90,9 +87,7 @@ for n = 1:numFrames
 
     % Keep trajectory axes in pixel units but aligned to x=0 at release:
     % left limit is pixels available to the left edge, right limit to the right edge.
-    if ~isnan(firstCentCol)
-        trajXLim = [-(firstCentCol - 1), (cropW - firstCentCol)];
-    end
+    trajXLim = [-(firstCentCol - 1), (cropW - firstCentCol)];
 
     plot(xHist(valid), yHist(valid), 'b-', 'LineWidth', 1.4)
     hold on
@@ -131,7 +126,7 @@ centRowFilled(lastKnown+1:end) = centRow(lastKnown);
 % y position in meters: positive and ends at zero (ground)
 yPosPx = cropH - centRowFilled + 1;
 yPosM = yPosPx * px2m;
-yCorr = yPosM - min(yPosM);
+yCorr = yPosM - yPosM(end);
 ySmooth = smooth(yCorr, 5);
 
 % Time vector for analyzed frames
