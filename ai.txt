@@ -13,6 +13,8 @@ dont want rather than dealing with the oblique imcrop function. It also
 perfered to interpolate some data with the stem plot, but I belive that we 
 dont cover interpolation, or spline techniques in general so I had to 
 refactor that out as well.
+
+
 I had the AI actually write everything it did in detail (I had pull reqs
 of AI work on github, https://github.com/ParsaNemati85/PA8)
 Heres a summary:

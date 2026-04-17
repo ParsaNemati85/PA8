@@ -31,7 +31,7 @@ numFrames = numel(frameList);
 
 % Color threshold (RGB)
 Cmin = [129, 29, 7];
-Cmax = [308, 223, 220];
+Cmax = [255, 223, 220];
 
 % Crop rectangle [xLeft xRight], [yTop yBottom]
 xCrop = 393;
@@ -188,7 +188,7 @@ eMean = mean(eEach(1:end-1));
 fprintf('Average coefficient of restitution: %.4f\n', eMean)
 
 %% Section 4: Energy vs time
-PE = ballMass * abs(G) .* ySmooth;
+PE = ballMass * abs(G) .* max(ySmooth, 0);
 KE = 0.5 * ballMass .* (yVel.^2);
 TE = PE + KE;
 

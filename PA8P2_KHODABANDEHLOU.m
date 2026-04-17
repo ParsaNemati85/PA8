@@ -24,7 +24,7 @@ vid = VideoReader(vidFile);
 frameRate = 120;         % use known/assigned frame rate (fps)
 
 % Frame range (trim unusable beginning/end)
-frameStart = 40;                % change if needed
+frameStart = 35;                % change if needed
 frameStop = 292;               % change if needed
 frameList = frameStart:frameStop;
 numFrames = numel(frameList);
@@ -39,7 +39,7 @@ cropH = 678;
 
 % Bounce detection settings
 minPeakDistSec = 0.10;   % minimum time between bounce peaks (s)
-peakPromFrac = 0.03;     % prominence as fraction of max height
+peakPromFrac = 0.01;     % prominence as fraction of max height
 minHeightFrac = 0.08;    % minimum normalized height for "quality" bounces
 
 %% Section 1: Process each frame (full frame, threshold, centroid)
@@ -201,7 +201,7 @@ eMean = mean(eQuality);
 fprintf('Average coefficient of restitution: %.4f\n', eMean)
 
 %% Section 4: Energy vs time
-PE = ballMass * abs(G) .* ySmooth;
+PE = ballMass * abs(G) .* max(ySmooth, 0);
 KE = 0.5 * ballMass .* (yVel.^2);
 TE = PE + KE;
 
