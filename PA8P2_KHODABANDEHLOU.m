@@ -58,9 +58,10 @@ for n = 1:numFrames
     frameCrop = frameRGB;
 
     % Binary threshold for the ball color
-    BW = frameCrop(:,:,1) >= Cmin(1) & frameCrop(:,:,1) <= Cmax(1) & ...
+    BW = ~(frameCrop(:,:,1) >= Cmin(1) & frameCrop(:,:,1) <= Cmax(1) & ...
          frameCrop(:,:,2) >= Cmin(2) & frameCrop(:,:,2) <= Cmax(2) & ...
-         frameCrop(:,:,3) >= Cmin(3) & frameCrop(:,:,3) <= Cmax(3);
+         frameCrop(:,:,3) >= Cmin(3) & frameCrop(:,:,3) <= Cmax(3));
+    
 
     % Centroid of thresholded blob
     [r, c] = Centroid(BW);
