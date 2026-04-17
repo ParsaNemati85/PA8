@@ -47,7 +47,8 @@ centRow = zeros(numFrames,1);
 centCol = zeros(numFrames,1);
 ballAreaPx = zeros(numFrames,1);
 hasCentroid = false(numFrames,1);
-firstCentCol = NaN;         % anchor x so initial detected position is x = 0
+firstCentCol = 0;           % anchor x so initial detected position is x = 0
+hasFirstCentCol = false;
 trajXLim = [0, cropW - 1];  % updated once first centroid is detected
 
 figure('Name','Motion Tracking','Color','w')
@@ -79,8 +80,11 @@ for n = 1:numFrames
 
     % Plot 2: centroid history + current location
     subplot(1,2,2)
-    firstCentCol = centCol(n);
-
+    if hasCentroid(n) && ~hasFirstCentCol
+        firstCentCol = centCol(n);
+        hasFirstCentCol = true;
+    end
+    
     xHist = centCol(1:n) - firstCentCol; % x=0 at first detected centroid
     yHist = cropH - centRow(1:n) + 1; % upward-positive plotting
     valid = hasCentroid(1:n);
