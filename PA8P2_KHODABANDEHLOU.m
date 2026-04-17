@@ -21,7 +21,7 @@ ballDm = 100e-3;         % known ball diameter (m), 100 mm
 % Video setup
 vidFile = 'BouncingBall2.mov';
 vid = VideoReader(vidFile);
-frameRate = 3;         % use known/assigned frame rate (fps)
+frameRate = 240;         % use known/assigned frame rate (fps)
 
 % Frame range (trim unusable beginning/end)
 frameStart = 1;                % change if needed
@@ -30,8 +30,8 @@ frameList = frameStart:frameStop;
 numFrames = numel(frameList);
 
 % Color threshold (RGB)
-Cmin = [129, 29, 7];
-Cmax = [308, 223, 220];
+Cmin = [120, 50, 50];
+Cmax = [255, 255, 255];
 
 % Use the full frame (no cropping)
 cropW = vid.Width;
