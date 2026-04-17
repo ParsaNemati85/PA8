@@ -14,9 +14,9 @@ clc
 % Constants
 G = -9.81;               % gravity (m/s^2)
 
-% Ball properties
-ballMass = 0.10;         % ball mass (kg)
-ballDm = 69.51e-3;       % known ball diameter (m)
+% Ball properties (provided for PA8P2)
+ballMass = 0.051;        % ball mass (kg), 51 g
+ballDm = 100e-3;         % known ball diameter (m), 100 mm
 
 % Video setup
 vidFile = 'BouncingBall2.mov';
@@ -47,6 +47,7 @@ centRow = zeros(numFrames,1);
 centCol = zeros(numFrames,1);
 ballAreaPx = zeros(numFrames,1);
 hasCentroid = false(numFrames,1);
+firstCentCol = NaN;      % anchor x so initial detected position is x = 0
 
 figure('Name','Motion Tracking','Color','w')
 for n = 1:numFrames
@@ -77,7 +78,11 @@ for n = 1:numFrames
 
     % Plot 2: centroid history + current location
     subplot(1,2,2)
-    xHist = centCol(1:n);
+    if isnan(firstCentCol) && hasCentroid(n)
+        firstCentCol = centCol(n);
+    end
+
+    xHist = centCol(1:n) - firstCentCol;
     yHist = cropH - centRow(1:n) + 1; % upward-positive plotting
     valid = hasCentroid(1:n);
 
@@ -87,7 +92,7 @@ for n = 1:numFrames
     plot(xHist(lastIdx), yHist(lastIdx), 'rx', 'LineWidth', 1.8, 'MarkerSize', 9)
     hold off
     grid on
-    axis([1 cropW 0 cropH])
+    axis([0 cropW 0 cropH])
     pbaspect([cropW cropH 1])
     set(gca, 'YDir', 'normal')
     title('Centroid Trajectory')
