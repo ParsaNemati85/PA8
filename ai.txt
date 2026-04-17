@@ -13,3 +13,72 @@ dont want rather than dealing with the oblique imcrop function. It also
 perfered to interpolate some data with the stem plot, but I belive that we 
 dont cover interpolation, or spline techniques in general so I had to 
 refactor that out as well.
+I had the AI actually write everything it did in detail (I had pull reqs
+of AI work on github, https://github.com/ParsaNemati85/PA8)
+Heres a summary:
+
+PR1:
+Implement the Part 1 assignment workflow to track a bouncing ball from video frames, compute kinematics, extract bounce heights and coefficient of restitution, and plot energies.
+Make the script configurable from a single Declarations section so parameters like crop, thresholds, and frame range can be adjusted without editing analysis code.
+Description
+Rewrote PA8_KHODABANDEHLOU.m to process frames one-by-one in a for loop (read → crop → threshold → centroid via Centroid) and produce a live motion figure showing the binary crop and centroid trajectory with fixed axes and matched aspect ratio.
+Added robust pixel-to-meter scaling by measuring the ball equivalent diameter across valid frames and setting px2m, then computed corrected upward-positive position, smoothed it with smooth(...,5), and numerically differentiated with gradient to get velocity and acceleration.
+Added bounce detection using findpeaks and a stem plot of initial + rebound heights, computed per-bounce restitution e = sqrt(h_{n+1}/h_n), filtered to "quality" bounces, and printed the mean coefficient of restitution.
+Added energy calculations (potential, kinetic, total) using the vertical velocity and smoothed position and plotted all three on a single axes; also reorganized top-level parameters (frame range, crop, thresholds, detection settings) for easy tuning.
+Testing
+Ran repository checks including git status --short and git diff to verify changes and committed the updated script successfully (git commit succeeded).
+Performed static inspection of the modified file with nl/sed to confirm the intended edits were applied.
+Attempted to run a runtime check with octave --version, but execution failed because Octave/MATLAB is not available in this environment, so the script could not be executed here.
+
+PR2:
+Motivation
+Remove reliance on nan, isnan, fillmissing, disp, and any helper functions to make the tracking pipeline more explicit and robust.
+Preserve the original behavior for missing centroid detections while avoiding NaN-based logic and undocumented utility functions.
+Description
+Replace NaN placeholders by zero-initialized vectors centRow, centCol, and ballAreaPx and add a logical mask hasCentroid to track valid detections.
+Replace isnan-based validity checks with hasCentroid mask and replace any(valid) with nnz(valid) > 0 for explicit truth testing.
+Replace fillmissing(..., 'linear', 'EndValues', 'nearest') with explicit handling: error if no centroids found, nearest-value fill for leading/trailing gaps, and interp1 linear interpolation for interior gaps.
+Use ballAreaPx > 0 for area validity and replace disp(eQuality) with fprintf('%s\n', mat2str(eQuality)), and simplify mean(..., 'omitnan') to mean(...) where appropriate.
+Testing
+Ran repository-wide search rg -n "\b(nan|isnan|fillmissing|disp|any)\b" and verified there are no remaining matches for those function names in the repository.
+Ran file-level checks on the modified script to confirm the new hasCentroid-based logic and interpolation code are present and the banned usages are removed.
+
+PR3:
+Motivation
+The code previously used hard-coded crop bounds which cropped the input video; the intent is to process the video uncropped while leaving PA8_KHODABANDEHLOU.m unchanged.
+Make the minimal edits required so the pipeline (thresholding, centroid extraction, kinematics, and energy calculations) continues to work on the full frame.
+Description
+Replace the hard-coded crop rectangle with frame dimensions from VideoReader by setting cropW = vid.Width and cropH = vid.Height.
+Stop indexing into the frame with crop bounds and instead set frameCrop = frameRGB immediately after reading each frame.
+Update section/comments and the binary display title to reflect full-frame processing, keeping thresholding, Centroid calls, plotting, and downstream computations unchanged.
+Testing
+Confirmed the updated file was written and committed successfully using repository commands and the commit metadata reported success.
+Ran git diff --check and repository status commands which returned no whitespace or diff issues.
+No MATLAB/Octave runtime tests were executed in this environment, so functional validation was not performed here.
+
+PR4:
+Motivation
+Ensure the centroid trajectory plot uses the same pixel scaling and aspect ratio as the source video so plotted positions correspond to video pixels.
+Anchor the horizontal trajectory so the initial detected ball appears at x = 0 for easier interpretation and comparison with the video.
+Use the provided physical properties for the ball (mass and diameter) to make pixel-to-meter conversions consistent with the experiment.
+Description
+Updated ball constants in PA8P2_KHODABANDEHLOU.m to ballMass = 0.051 (51 g) and ballDm = 100e-3 (100 mm).
+Added firstCentCol = NaN and set it on first valid detection, then subtract it from centCol so xHist is anchored to x = 0.
+Changed the centroid plot x-axis to start at 0 via axis([0 cropW 0 cropH]) and preserved the video aspect ratio with pbaspect([cropW cropH 1]) so pixel scaling matches the video.
+Left the pixel-to-meter scale calculation (px2m = ballDm / ballDPx) intact so diameter-based conversion uses the updated ballDm.
+Testing
+Attempted octave --quiet --eval "disp(exist('VideoReader','file'))", which failed because Octave is not installed in this environment, so no runtime plotting/processing tests were executed.
+
+PR5:
+Motivation
+Ensure the centroid trajectory plot uses the same pixel coordinate system and aspect ratio as the source video so plotted positions correspond to actual video pixels and the initial detected ball x position is at x = 0.
+Preserve pixel-to-meter scaling (using the known ball diameter and mass) for downstream kinematics and energy calculations.
+Description
+Added trajXLim initialization and dynamic update so horizontal axis is anchored to the first detected centroid (firstCentCol) and reflects available pixels to the left/right of that point via trajXLim = [-(firstCentCol - 1), (cropW - firstCentCol)].
+Computed xHist as centCol - firstCentCol so the first detected centroid is plotted at x = 0 while y remains in upward-positive pixel units (yHist = cropH - centRow + 1).
+Replaced the fixed axis([0 cropW 0 cropH]) call with xlim(trajXLim) and ylim([0 cropH]) and retained pbaspect([cropW cropH 1]) to match the video's aspect ratio.
+Left pixel-to-meter conversion and ball parameters unchanged (ballMass = 0.051, ballDm = 100e-3, px2m = ballDm/ballDPx) so kinematics/energy use consistent units.
+Testing
+Inspected the code changes with git diff -- PA8P2_KHODABANDEHLOU.m and confirmed the intended edits were present (succeeded).
+Viewed the updated file excerpt with nl -ba PA8P2_KHODABANDEHLOU.m | sed -n '40,130p' to verify inserted lines (succeeded).
+Attempted to run octave --version to perform runtime validation but it failed because Octave/MATLAB is not available in this environment, so no runtime execution tests were performed (failed).
