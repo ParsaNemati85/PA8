@@ -47,9 +47,10 @@ peakPromFrac = 0.03;     % prominence as fraction of max height
 minHeightFrac = 0.08;    % minimum normalized height for "quality" bounces
 
 %% Section 1: Process each frame (crop, threshold, centroid)
-centRow = nan(numFrames,1);
-centCol = nan(numFrames,1);
-ballAreaPx = nan(numFrames,1);
+centRow = zeros(numFrames,1);
+centCol = zeros(numFrames,1);
+ballAreaPx = zeros(numFrames,1);
+hasCentroid = false(numFrames,1);
 
 figure('Name','Motion Tracking','Color','w')
 for n = 1:numFrames
@@ -70,6 +71,7 @@ for n = 1:numFrames
         centRow(n) = r;
         centCol(n) = c;
         ballAreaPx(n) = sum(BW(:));
+        hasCentroid(n) = true;
     end
 
     % Plot 1: cropped binary image
@@ -81,11 +83,11 @@ for n = 1:numFrames
     subplot(1,2,2)
     xHist = centCol(1:n);
     yHist = cropH - centRow(1:n) + 1; % upward-positive plotting
-    valid = ~isnan(xHist) & ~isnan(yHist);
+    valid = hasCentroid(1:n);
 
     plot(xHist(valid), yHist(valid), 'b-', 'LineWidth', 1.4)
     hold on
-    if any(valid)
+    if nnz(valid) > 0
         lastIdx = find(valid, 1, 'last');
         plot(xHist(lastIdx), yHist(lastIdx), 'rx', 'LineWidth', 1.8, 'MarkerSize', 9)
     end
@@ -102,14 +104,31 @@ for n = 1:numFrames
 end
 
 %% Pixel-to-meter conversion from measured diameter
-validArea = ~isnan(ballAreaPx) & ballAreaPx > 0;
+validArea = ballAreaPx > 0;
 ballDPxVec = sqrt(4*ballAreaPx(validArea)/pi);   % equivalent diameter from area
 ballDPx = median(ballDPxVec);                    % one scale for whole video
 px2m = ballDm / ballDPx;
 
 %% Section 2: Kinematics (position, velocity, acceleration)
 % Fill missing centroid values from occasional threshold dropouts
-centRowFilled = fillmissing(centRow, 'linear', 'EndValues', 'nearest');
+knownRows = find(hasCentroid);
+if isempty(knownRows)
+    error('No centroid detections were found. Check threshold and crop settings.')
+end
+
+centRowFilled = centRow;
+firstKnown = knownRows(1);
+lastKnown = knownRows(end);
+centRowFilled(1:firstKnown-1) = centRow(firstKnown);
+centRowFilled(lastKnown+1:end) = centRow(lastKnown);
+
+if numel(knownRows) >= 2
+    interpRows = ~hasCentroid;
+    interpRows(1:firstKnown-1) = false;
+    interpRows(lastKnown+1:end) = false;
+    centRowFilled(interpRows) = interp1(knownRows, centRow(knownRows), ...
+        find(interpRows), 'linear');
+end
 
 % y position in meters: positive and ends at zero (ground)
 yPosPx = cropH - centRowFilled + 1;
@@ -181,10 +200,10 @@ eEach = sqrt(hAll(2:end) ./ hAll(1:end-1));
 qualityMask = hAll(2:end) >= minHeightFrac * hAll(1);
 eQuality = eEach(qualityMask);
 
-eMean = mean(eQuality, 'omitnan');
+eMean = mean(eQuality);
 
 fprintf('Coefficient of restitution values (quality bounces):\n')
-disp(eQuality)
+fprintf('%s\n', mat2str(eQuality))
 fprintf('Average coefficient of restitution: %.4f\n', eMean)
 
 %% Section 4: Energy vs time
