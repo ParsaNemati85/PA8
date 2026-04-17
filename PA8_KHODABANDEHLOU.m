@@ -24,7 +24,7 @@ vid = VideoReader(vidFile);
 frameRate = 240;         % use known/assigned frame rate (fps)
 
 % Frame range (trim unusable beginning/end)
-frameStart = 1;                          % change if needed
+frameStart = 30;                          % change if needed
 frameStop = 527;               % change if needed
 frameList = frameStart:frameStop;
 numFrames = numel(frameList);
@@ -121,7 +121,7 @@ centRowFilled(lastKnown+1:end) = centRow(lastKnown);
 % y position in meters: positive and ends at zero (ground)
 yPosPx = cropH - centRowFilled + 1;
 yPosM = yPosPx * px2m;
-yCorr = yPosM - min(yPosM);
+yCorr = yPosM - yPosM(end);
 ySmooth = smooth(yCorr, 5);
 
 % Time vector for analyzed frames
@@ -211,4 +211,3 @@ title('Potential, Kinetic, and Total Energy')
 legend('Potential Energy', 'Kinetic Energy', 'Total Energy', 'Location', 'best')
 
 
-%% Part 2:
