@@ -1,0 +1,15 @@
+Here is what AI was used for in this assigment,
+Quite alot actually:
+I did most of the scaffolding, such as creating the video reader, 
+defining how I wanted plots to look, etc. Then I just asked my LLM of 
+choice to complete everything there. It seemed to really like using 
+OOP, which is something Dr. Huesseni explicitly requested I avoid using
+from PA3 onwards, so I had to refactor that out. It also seemed to favor
+using more "advanced" image/video analysis functions, which again I had to
+refactor out (really likes nan function, and rgbvid or something along 
+those lines). Although it did kinda hurt to remove the error system it made.
+In an intereseting twist, we can simply index the parts of the image we 
+dont want rather than dealing with the oblique imcrop function. It also 
+perfered to interpolate some data with the stem plot, but I belive that we 
+dont cover interpolation, or spline techniques in general so I had to 
+refactor that out as well.

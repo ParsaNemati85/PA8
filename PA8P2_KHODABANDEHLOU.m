@@ -1,7 +1,7 @@
 % Parsa Khodabandehlou
 % pkhodab@ncsu.edu
-% Apr 8th 2026
-% PA8_KHODABANDEHLOU.m
+% Apr 16th 2026
+% PA8P2_KHODABANDEHLOU.m
 %
 % Records video of a bouncing ball and calculates motion, bounce heights,
 % coefficient of restitution, and energy.
@@ -19,13 +19,13 @@ ballMass = 0.10;         % ball mass (kg)
 ballDm = 69.51e-3;       % known ball diameter (m)
 
 % Video setup
-vidFile = 'ball.mov';
+vidFile = 'BouncingBall2.mov';
 vid = VideoReader(vidFile);
-frameRate = 240;         % use known/assigned frame rate (fps)
+frameRate = 3;         % use known/assigned frame rate (fps)
 
 % Frame range (trim unusable beginning/end)
-frameStart = 1;                          % change if needed
-frameStop = 527;               % change if needed
+frameStart = 1;                % change if needed
+frameStop = 292;               % change if needed
 frameList = frameStart:frameStop;
 numFrames = numel(frameList);
 
@@ -209,6 +209,3 @@ xlabel('Time (s)')
 ylabel('Energy (J)')
 title('Potential, Kinetic, and Total Energy')
 legend('Potential Energy', 'Kinetic Energy', 'Total Energy', 'Location', 'best')
-
-
-%% Part 2:
